@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>导航</title>
+<style>
+  :root {
+    --klein-blue: #002FA7;
+    --bg: #F5F5F3;
+    --card-bg: #FFFFFF;
+    --text-primary: #111111;
+    --text-secondary: #6E6E6E;
+    --border: #E2E2E0;
+    --grid-gap: 24px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: "Helvetica Neue", Helvetica, "Inter", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 64px 32px 96px;
+  }
+
+  header {
+    margin-bottom: 56px;
+    border-bottom: 3px solid var(--klein-blue);
+    padding-bottom: 24px;
+  }
+
+  header .eyebrow {
+    display: block;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--klein-blue);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    margin-top: 12px;
+    font-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--grid-gap);
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px 24px;
+    text-decoration: none;
+    color: inherit;
+    min-height: 140px;
+    position: relative;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .card:hover {
+    border-color: var(--klein-blue);
+    transform: translateY(-2px);
+  }
+
+  .card:hover .arrow {
+    transform: translate(2px, -2px);
+  }
+
+  .card .index {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .card .name {
+    font-size: 19px;
+    font-weight: 700;
+    margin-top: 12px;
+    line-height: 1.3;
+  }
+
+  .card .desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  .card .footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+
+  .card .tag {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--klein-blue);
+    font-weight: 700;
+  }
+
+  .arrow {
+    font-size: 18px;
+    color: var(--klein-blue);
+    transition: transform 0.15s ease;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 600px) {
+    .page { padding: 40px 20px 64px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <span class="eyebrow">Navigation</span>
+    <h1>工具导航</h1>
+    <p class="subtitle">点击卡片跳转至对应工具</p>
+  </header>
+
+  <nav class="grid" id="nav-grid"></nav>
+
+  <footer>当前共 <span id="count">0</span> 个入口</footer>
+
+</div>
+
+<script>
+  const navItems = [
+    { name: "批量二维码生成", path: "./BatchQR/index.html", desc: "批量二维码生产工具，支持excel上传" },
+    { name: "批量二维码解码", path: "./QR-Decoder/index.html", desc: "高效批量二维码解码工具，支持zip压缩包上传" },
+    { name: "屏幕尺寸计算", path: "./ScreenCalc/index.html", desc: "计算物理尺寸、PPI 及显示校准缩放值" },
+    { name: "目录树生成", path: "./DirTree/index.html", desc: "本地目录结构树生成器" }
+  ];
+
+  const grid = document.getElementById("nav-grid");
+  const countEl = document.getElementById("count");
+
+  navItems.forEach((item, i) => {
+    const a = document.createElement("a");
+    a.className = "card";
+    a.href = item.path;
+    a.innerHTML = `
+      <div>
+        <div class="index">${String(i + 1).padStart(2, "0")}</div>
+        <div class="name">${item.name}</div>
+        <div class="desc">${item.desc || ""}</div>
+      </div>
+      <div class="footer-row">
+        <span class="tag">Open</span>
+        <span class="arrow">&#8599;</span>
+      </div>
+    `;
+    grid.appendChild(a);
+  });
+
+  countEl.textContent = navItems.length;
+</script>
+
+</body>
+</html>
