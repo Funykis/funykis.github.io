@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>点阵城市天际线生成器</title>
+<style>
+:root{--bg:#f6f5f2;--panel:#fff;--ink:#1d1f24;--mute:#6b7280;--line:#e3e1db;--acc:#2f6fed;--accink:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111317;--panel:#1b1e24;--ink:#e8eaee;--mute:#9aa1ad;--line:#2c3039;--acc:#6b9bff;--accink:#0b1020}}
+:root[data-theme="dark"]{--bg:#111317;--panel:#1b1e24;--ink:#e8eaee;--mute:#9aa1ad;--line:#2c3039;--acc:#6b9bff;--accink:#0b1020}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif}
+.app{display:flex;flex-direction:column;gap:16px;max-width:1400px;margin:0 auto;padding:16px}
+.stage{order:1}
+.panel{order:2;width:100%;max-width:800px;margin:0 auto}
+.panel h1,.panel .sub,.panel .note{text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;column-gap:36px;margin-top:8px}
+@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+.grid2 h2{margin:12px 0 0;padding-bottom:6px;border-bottom:1px solid var(--line);font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--mute)}
+.panel,.stage{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+h1{font-size:17px;margin:0 0 2px}
+.sub{color:var(--mute);font-size:12px;margin:0 0 6px}
+.row{margin:13px 0 0}
+.row>label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.row>label b{font-weight:500;color:var(--mute);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:0;accent-color:var(--acc)}
+select{width:100%;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink);padding:7px 0;font:inherit;cursor:pointer}
+.seg button.on{background:var(--acc);color:var(--accink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.chips button,.btns button{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
+.chips button{padding:2px 9px;font-size:12px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:13px;cursor:pointer}
+.stage{display:flex;flex-direction:column;align-items:center;gap:12px}
+#view{--r:2.4;width:min(100%,calc(68vh * var(--r)));aspect-ratio:var(--r);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+#view.chk-bg{background:conic-gradient(#ccc 25%,#fff 0 50%,#ccc 0 75%,#fff 0) 0 0/16px 16px}
+#view svg{display:block;width:100%;height:100%}
+#info{color:var(--mute);font-size:12px;text-align:center}
+.btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btns button{padding:8px 16px}
+.btns .pri{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+#msg{min-height:20px;margin:0;font-size:12px;color:var(--mute);text-align:center}
+.note{color:var(--mute);font-size:12px;margin:14px 0 0}
+[hidden]{display:none!important}
+.cols{display:flex;gap:10px;margin-top:8px}
+.cols label{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--mute)}
+.cols input{width:100%;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="panel">
+  <h1>点阵城市天际线</h1>
+  <p class="sub">所有图层共用同一套网格，每个格位只属于最前面的图层：图层之间不重叠，也没有空隙。</p>
+  <div class="grid2">
+    <section>
+      <h2>画面与建筑</h2>
+      <div class="row"><label>元素形状</label>
+        <div class="seg"><button data-k="shape" data-v="square">正方形</button><button data-k="shape" data-v="hex">正六边形</button></div></div>
+      <div class="row"><label>图层数量</label>
+        <div class="seg"><button data-k="layers" data-v="2">2 层</button><button data-k="layers" data-v="3">3 层</button></div></div>
+      <div class="row"><label>长宽比<b id="v_asp"></b></label>
+        <input id="asp" type="range" min="4" max="10" step="0.1" value="6">
+        <div class="chips"><button data-a="4">4:1</button><button data-a="5">5:1</button><button data-a="6">6:1</button><button data-a="8">8:1</button><button data-a="10">10:1</button></div></div>
+      <div class="row"><label>建筑高度<b id="v_hs"></b></label><input id="hs" type="range" min="50" max="150" step="1" value="100"></div>
+      <div class="row"><label>建筑宽度<b id="v_ws"></b></label><input id="ws" type="range" min="50" max="200" step="1" value="100"></div>
+    </section>
+    <section>
+      <h2>点阵与配色</h2>
+      <div class="row"><label>近景元素大小<b id="v_size"></b></label><input id="size" type="range" min="4" max="30" step="1" value="10"></div>
+      <div class="row"><label>网格密度（越高越紧密）<b id="v_den"></b></label><input id="den" type="range" min="50" max="100" step="1" value="90"></div>
+      <div class="row"><label>远景元素大小<b id="v_sf"></b></label><input id="sf" type="range" min="30" max="100" step="1" value="55"></div>
+      <div class="row" id="rmid"><label>中景元素大小<b id="v_sm"></b></label><input id="sm" type="range" min="30" max="100" step="1" value="78"></div>
+      <div class="row"><label>配色方案</label><select id="pal"></select>
+        <div class="cols"><label>背景<input type="color" id="cb"></label><label>远景<input type="color" id="c0"></label><label id="lmid">中景<input type="color" id="c1"></label><label>近景<input type="color" id="c2"></label></div></div>
+      <label class="chk"><input type="checkbox" id="tr"> 透明背景</label>
+    </section>
+  </div>
+  <p class="note">每一层是独立的 &lt;path&gt;，可直接在 Figma、Illustrator 中继续编辑。</p>
+</aside>
+<main class="stage">
+  <div id="view"></div>
+  <div id="info"></div>
+  <div class="btns"><button id="re">🎲 重新生成</button><button id="exp" class="pri">导出 SVG 矢量图</button><button id="cp">复制 SVG 代码</button></div>
+  <p id="msg" aria-live="polite"></p>
+</main>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const S={shape:'hex',layers:3,seed:7};
+const PAL=[
+ {n:'午夜蓝',bg:'#0e1428',c:['#27345f','#3f5a94','#8fb4ee']},
+ {n:'晨雾',bg:'#f4efe8',c:['#d9cfc2','#a89a8a','#4a4038']},
+ {n:'日落',bg:'#1c1233',c:['#6d2c6f','#c8466b','#ffb35c']},
+ {n:'青绿',bg:'#eaf4f1',c:['#b7d8cf','#5fa896','#145a4b']},
+ {n:'黑白',bg:'#ffffff',c:['#d4d4d4','#8c8c8c','#111111']}
+];
+const L={asp:v=>(+v).toFixed(1)+' : 1（'+Math.round(300*v)+'×300）',size:v=>v+' px',den:v=>v+'%',sf:v=>v+'%',sm:v=>v+'%',hs:v=>v+'%',ws:v=>v+'%'};
+const f=n=>+n.toFixed(1);
+let cur='',tm;
+
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+// 生成一层天际线：返回每个 x 列上建筑顶部的 y 值（越小越高）
+function sky(W,H,li,n,seed,hs,ws,p){
+  const r=rng(seed*7919+li*1013+1),top=new Float32Array(W).fill(H);
+  const u=H/6,k=n>1?li/(n-1):1;
+  const lo=.30-.20*k,hi=.78-.36*k,w0=.4+.2*k,w1=1+.6*k;
+  const rect=(x,w,h)=>{const t=H-Math.min(h,H*.97);for(let i=Math.max(0,Math.floor(x));i<Math.min(W,Math.ceil(x+w));i++)if(t<top[i])top[i]=t};
+  let x=-r()*u*.6;
+  while(x<W){
+    const w=u*(w0+r()*(w1-w0))*ws,h=H*(lo+Math.pow(r(),1.6)*(hi-lo))*hs;
+    rect(x,w,h);
+    if(h>H*.28&&r()<.45){
+      const w2=w*(.45+r()*.25),h2=h+H*(.04+r()*.1);
+      rect(x+(w-w2)/2,w2,h2);
+      if(r()<.35){const w3=Math.max(p*1.05,w*.1);rect(x+(w-w3)/2,w3,h2+H*(.05+r()*.08))}
+    }
+    x+=w;
+  }
+  return top;
+}
+
+function applyPal(i){const P=PAL[i];$('#cb').value=P.bg;['c0','c1','c2'].forEach((id,j)=>$('#'+id).value=P.c[j])}
+
+function render(){
+  const asp=+$('#asp').value,H=300,W=Math.round(H*asp);
+  const size=+$('#size').value,den=$('#den').value/100;
+  const hs=$('#hs').value/100,ws=$('#ws').value/100,n=S.layers,hex=S.shape==='hex';
+  const sf=$('#sf').value/100,sm=$('#sm').value/100;
+  const sc=n===3?[sf,sm,1]:[sf,1],cl=n===3?[$('#c0').value,$('#c1').value,$('#c2').value]:[$('#c0').value,$('#c2').value];
+  for(const k in L)$('#v_'+k).textContent=L[k]($('#'+k).value);
+  $('#rmid').hidden=$('#lmid').hidden=n!==3;
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',String(S[b.dataset.k])===b.dataset.v));
+
+  // 所有图层共用同一套网格（间距、原点完全一致）
+  const p=size/den,hw0=size/2,R0=hex?size/Math.sqrt(3):hw0,rh=hex?p*.8660254:p,ex=hex?p/2:0;
+  const nc=Math.floor((W-size-ex)/p)+1,x0=(W-((nc-1)*p+size+ex))/2+hw0;
+  const tops=[];for(let i=0;i<n;i++)tops.push(sky(W,H,i,n,S.seed,hs,ws,p));
+  const ds=Array(n).fill('');let cnt=0;
+  for(let k=0;;k++){
+    const cy=H-R0-k*rh;if(cy+R0<0)break;
+    const o=hex&&k%2?p/2:0;
+    for(let c=0;c<nc;c++){
+      const cx=x0+c*p+o,xi=Math.min(W-1,Math.round(cx));
+      let li=n-1;while(li>=0&&cy<tops[li][xi])li--;   // 取覆盖该格的最前层，每格只画一次
+      if(li<0)continue;                                 // 天空
+      const s=size*sc[li],hw=s/2,R=hex?s/Math.sqrt(3):hw;
+      cnt++;
+      ds[li]+=hex?`M${f(cx)} ${f(cy-R)}l${f(hw)} ${f(R/2)}v${f(R)}l${f(-hw)} ${f(R/2)}l${f(-hw)} ${f(-R/2)}v${f(-R)}z`
+                 :`M${f(cx-hw)} ${f(cy-hw)}h${f(s)}v${f(s)}h${f(-s)}z`;
+    }
+  }
+  const body=ds.map((d,li)=>d?`<path id="layer-${li+1}" fill="${cl[li]}" d="${d}"/>`:'').join('');
+  cur=`<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`
+    +($('#tr').checked?'':`<rect id="bg" width="${W}" height="${H}" fill="${$('#cb').value}"/>`)+body+'</svg>';
+  const v=$('#view');
+  v.style.setProperty('--r',W/H);
+  v.classList.toggle('chk-bg',$('#tr').checked);
+  v.innerHTML=cur.replace(/^<\?xml[^>]*>\s*/,'');
+  $('#info').textContent=`${cnt.toLocaleString()} 个元素 · ${W}×${H} · SVG 约 ${Math.round(cur.length/1024)} KB · 种子 ${S.seed}`;
+}
+
+function msg(t){const m=$('#msg');m.textContent=t;clearTimeout(tm);tm=setTimeout(()=>m.textContent='',4000)}
+async function copy(){
+  try{await navigator.clipboard.writeText(cur);return true}
+  catch(e){const t=document.createElement('textarea');t.value=cur;document.body.appendChild(t);t.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}t.remove();return ok}
+}
+function saveBlob(name,text){
+  const u=URL.createObjectURL(new Blob([text],{type:'image/svg+xml;charset=utf-8'}));
+  const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+async function exportSvg(){
+  const name=`skyline-${S.shape}-${S.layers}layers-${(+$('#asp').value).toFixed(1)}.svg`;
+  try{saveBlob(name,cur);msg('已导出 '+name)}
+  catch(e){msg((await copy())?'下载失败，已将 SVG 代码复制到剪贴板':'导出失败，请重试')}
+}
+
+$('#pal').innerHTML=PAL.map((p,i)=>`<option value="${i}">${p.n}</option>`).join('');
+document.querySelectorAll('input').forEach(e=>e.addEventListener('input',render));
+$('#pal').addEventListener('input',()=>{applyPal(+$('#pal').value);render()});
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{S[b.dataset.k]=b.dataset.k==='layers'?+b.dataset.v:b.dataset.v;render()});
+document.querySelectorAll('.chips button').forEach(b=>b.onclick=()=>{$('#asp').value=b.dataset.a;render()});
+$('#re').onclick=()=>{S.seed=Math.floor(Math.random()*9999)+1;render()};
+$('#exp').onclick=exportSvg;
+$('#cp').onclick=async()=>msg((await copy())?'SVG 代码已复制':'复制失败，请改用导出');
+applyPal(0);
+render();
+</script>
+</body>
+</html>
